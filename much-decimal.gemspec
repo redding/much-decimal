@@ -19,6 +19,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
 
   gem.add_development_dependency("assert", ["~> 2.16.1"])
-  # TODO: gem.add_dependency("gem-name", ["~> 0.0.0"])
+
+  gem.add_dependency('much-plugin', ["~> 0.1.1"])
 
 end
