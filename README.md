@@ -1,6 +1,6 @@
 # MuchDecimal
 
-TODO: Write a gem description
+Define decimal attributes that are stored as integers; the integer can be used for math operations and the decimal for display.
 
 ## Usage
 

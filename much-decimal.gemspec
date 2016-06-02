@@ -6,11 +6,11 @@ require "much-decimal/version"
 Gem::Specification.new do |gem|
   gem.name        = "much-decimal"
   gem.version     = MuchDecimal::VERSION
-  gem.authors     = ["TODO: authors"]
-  gem.email       = ["TODO: emails"]
-  gem.summary     = "TODO: Write a gem summary"
-  gem.description = "TODO: Write a gem description"
-  gem.homepage    = "TODO: homepage"
+  gem.authors     = ["Kelly Redding", "Collin Redding"]
+  gem.email       = ["kelly@kellyredding.com", "collin.redding@me.com"]
+  gem.summary     = "Define decimal attributes that are stored as integers"
+  gem.description = "Define decimal attributes that are stored as integers"
+  gem.homepage    = "https://github.com/redding/much-decimal"
   gem.license     = 'MIT'
 
   gem.files         = `git ls-files`.split($/)
