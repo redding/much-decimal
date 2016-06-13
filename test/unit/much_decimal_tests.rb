@@ -48,8 +48,7 @@ module MuchDecimal
 
   end
 
-  class MixinTests < UnitTests
-    desc "when mixed in"
+  class MixinSetupTests < UnitTests
     setup do
       @class = Class.new do
         include MuchDecimal
@@ -57,6 +56,11 @@ module MuchDecimal
       end
     end
     subject{ @class }
+
+  end
+
+  class MixinTests < MixinSetupTests
+    desc "when mixed in"
 
     should have_imeths :decimal_as_integer
 
@@ -183,6 +187,32 @@ module MuchDecimal
       subject.seconds = 1 / 3.0
       assert_equal 3333,   subject.ten_thousandth_seconds
       assert_equal 0.3333, subject.seconds
+    end
+
+  end
+
+  class TestHelpersTests < MixinSetupTests
+    include MuchDecimal::TestHelpers
+
+    desc "TestHelpers"
+    setup do
+      @class.decimal_as_integer :seconds
+      @custom_precision = Factory.integer(10)
+      @class.decimal_as_integer :other_seconds, {
+        :source    => :integer_seconds,
+        :precision => @custom_precision
+      }
+
+      @instance = @class.new
+    end
+    subject{ @instance }
+
+    should "provide helpers for testing that a class has json fields" do
+      assert_decimal_as_integer subject, :seconds
+      assert_decimal_as_integer subject, :other_seconds, {
+        :source    => :integer_seconds,
+        :precision => @custom_precision
+      }
     end
 
   end

@@ -45,4 +45,33 @@ module MuchDecimal
 
   end
 
+  module TestHelpers
+    include MuchPlugin
+
+    plugin_included do
+      include InstanceMethods
+
+      require 'assert/factory'
+    end
+
+    module InstanceMethods
+
+      def assert_decimal_as_integer(subject, attribute, options = nil)
+        options ||= {}
+        source    = options[:source] || "#{attribute}_as_integer"
+        precision = (options[:precision] || DEFAULT_PRECISION).to_i
+
+        value = Assert::Factory.float
+        subject.send("#{attribute}=", value)
+
+        exp = MuchDecimal.decimal_to_integer(value, precision)
+        assert_equal exp, subject.send(source)
+        exp = MuchDecimal.integer_to_decimal(exp, precision)
+        assert_equal exp, subject.send(attribute)
+      end
+
+    end
+
+  end
+
 end
