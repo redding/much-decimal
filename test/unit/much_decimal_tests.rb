@@ -1,220 +1,214 @@
-require 'assert'
-require 'much-decimal'
+# frozen_string_literal: true
+
+require "assert"
+require "much-decimal"
 
 module MuchDecimal
-
   class UnitTests < Assert::Context
     desc "MuchDecimal"
-    setup do
-      @module = MuchDecimal
-    end
-    subject{ @module }
+    subject{ unit_module }
+
+    let(:unit_module){ MuchDecimal }
+
+    let(:integer){ Factory.integer }
+    let(:decimal){ Factory.float }
+    let(:precision){ Factory.integer(10) }
+    let(:base_10_modifier){ 10.0**precision }
+    let(:invalid_value){ [nil, "", true, false].sample }
 
     should have_imeths :integer_to_decimal, :decimal_to_integer
 
-    should "use much-plugin" do
-      assert_includes MuchPlugin, subject
+    should "use MuchMixin" do
+      assert_that(subject).includes(MuchMixin)
     end
 
     should "know its default precision" do
-      assert_equal 2, DEFAULT_PRECISION
+      assert_that(DEFAULT_PRECISION).equals(2)
     end
 
     should "know how to convert an integer to a decimal" do
-      integer          = Factory.integer
-      precision        = Factory.integer(10)
-      base_10_modifier = (10.0 ** precision)
-
       exp = integer / base_10_modifier
-      assert_equal exp, subject.integer_to_decimal(integer,      precision)
-      assert_equal exp, subject.integer_to_decimal(integer.to_s, precision)
+      assert_that(subject.integer_to_decimal(integer, precision)).equals(exp)
+      assert_that(subject.integer_to_decimal(integer.to_s, precision))
+        .equals(exp)
 
-      invalid_value = [nil, '', true, false].sample
-      assert_nil subject.integer_to_decimal(invalid_value, precision)
+      assert_that(subject.integer_to_decimal(invalid_value, precision)).is_nil
     end
 
     should "know how to convert a decimal to an integer" do
-      decimal          = Factory.float
-      precision        = Factory.integer(10)
-      base_10_modifier = (10.0 ** precision)
-
       exp = (decimal * base_10_modifier).round.to_i
-      assert_equal exp, subject.decimal_to_integer(decimal,      precision)
-      assert_equal exp, subject.decimal_to_integer(decimal.to_s, precision)
+      assert_that(subject.decimal_to_integer(decimal, precision)).equals(exp)
+      assert_that(subject.decimal_to_integer(decimal.to_s, precision))
+        .equals(exp)
 
-      invalid_value = [nil, '', true, false].sample
-      assert_nil subject.decimal_to_integer(invalid_value, precision)
+      assert_that(subject.decimal_to_integer(invalid_value, precision)).is_nil
     end
-
   end
 
-  class MixinSetupTests < UnitTests
-    setup do
-      @class = Class.new do
+  class ReceiverSetupTests < UnitTests
+    subject{ receiver_class }
+
+    let(:receiver_class) do
+      Class.new do
         include MuchDecimal
         attr_accessor :seconds_as_integer, :integer_seconds
       end
     end
-    subject{ @class }
-
   end
 
-  class MixinTests < MixinSetupTests
-    desc "when mixed in"
+  class ReceiverTests < ReceiverSetupTests
+    desc "receiver"
+
+    let(:decimal){ Factory.float }
+    let(:integer){ Factory.integer }
+
+    let(:custom_source){ :integer_seconds }
+    let(:custom_precision){ Factory.integer(5) }
 
     should have_imeths :decimal_as_integer
 
     should "add a decimal-as-integer accessor using `decimal_as_integer`" do
-      subject.decimal_as_integer :seconds
+      subject.decimal_as_integer(:seconds)
 
-      instance = subject.new
-      assert_respond_to :seconds,  instance
-      assert_respond_to :seconds=, instance
+      receiver = subject.new
+      assert_that(receiver).responds_to(:seconds)
+      assert_that(receiver).responds_to(:seconds=)
 
-      decimal = Factory.float
-      integer = Factory.integer
+      receiver.seconds = decimal
+      assert_that(receiver.seconds_as_integer)
+        .equals(unit_module.decimal_to_integer(decimal, DEFAULT_PRECISION))
 
-      instance.seconds = decimal
-      exp = @module.decimal_to_integer(decimal, DEFAULT_PRECISION)
-      assert_equal exp, instance.seconds_as_integer
-
-      instance.seconds_as_integer = integer
-      exp = @module.integer_to_decimal(integer, DEFAULT_PRECISION)
-      assert_equal exp, instance.seconds
+      receiver.seconds_as_integer = integer
+      assert_that(receiver.seconds)
+        .equals(unit_module.integer_to_decimal(integer, DEFAULT_PRECISION))
     end
 
     should "allow specifying custom options using `decimal_as_integer`" do
-      source    = :integer_seconds
-      precision = Factory.integer(5)
-      subject.decimal_as_integer :seconds, {
-        :source    => source,
-        :precision => precision
-      }
+      subject.decimal_as_integer(
+        :seconds,
+        source:    custom_source,
+        precision: custom_precision,
+      )
 
-      instance = subject.new
-      assert_respond_to :seconds,  instance
-      assert_respond_to :seconds=, instance
+      receiver = subject.new
+      assert_that(receiver).responds_to(:seconds)
+      assert_that(receiver).responds_to(:seconds=)
 
-      decimal = Factory.float
-      integer = Factory.integer
+      receiver.seconds = decimal
+      assert_that(receiver.public_send(custom_source))
+        .equals(unit_module.decimal_to_integer(decimal, custom_precision))
 
-      instance.seconds = decimal
-      exp = @module.decimal_to_integer(decimal, precision)
-      assert_equal exp, instance.send(source)
-
-      instance.send("#{source}=", integer)
-      exp = @module.integer_to_decimal(integer, precision)
-      assert_equal exp, instance.seconds
+      receiver.public_send("#{custom_source}=", integer)
+      assert_that(receiver.seconds)
+        .equals(unit_module.integer_to_decimal(integer, custom_precision))
     end
-
   end
 
   class EdgeCaseTests < UnitTests
     desc "edge cases"
-    setup do
-      @class = Class.new do
+    subject{ receiver_class.new }
+
+    let(:receiver_class) do
+      Class.new do
         include MuchDecimal
 
         attr_accessor :ten_thousandth_seconds
 
-        decimal_as_integer(:seconds, {
-          :source    => :ten_thousandth_seconds,
-          :precision => 4
-        })
+        decimal_as_integer :seconds,
+                           source:    :ten_thousandth_seconds,
+                           precision: 4
       end
-      @instance = @class.new
     end
-    subject{ @instance }
 
     should "allow writing and reading `nil` values" do
-      assert_nil subject.ten_thousandth_seconds
-      assert_nil subject.seconds
+      assert_that(subject.ten_thousandth_seconds).is_nil
+      assert_that(subject.seconds).is_nil
 
       subject.seconds = 1.2345
-      assert_equal 12345,  subject.ten_thousandth_seconds
-      assert_equal 1.2345, subject.seconds
+      assert_that(subject.ten_thousandth_seconds).equals(12345)
+      assert_that(subject.seconds).equals(1.2345)
 
-      assert_nothing_raised{ subject.seconds = nil }
-      assert_nil subject.seconds
-      assert_nil subject.ten_thousandth_seconds
+      assert_that{ subject.seconds = nil }.does_not_raise
+      assert_that(subject.seconds).is_nil
+      assert_that(subject.ten_thousandth_seconds).is_nil
     end
 
     should "write empty string values as `nil` values" do
       subject.seconds = 1.2345
-      assert_not_nil subject.ten_thousandth_seconds
-      assert_not_nil subject.seconds
+      assert_that(subject.ten_thousandth_seconds).is_not_nil
+      assert_that(subject.seconds).is_not_nil
 
-      assert_nothing_raised{ subject.seconds = '' }
-      assert_nil subject.seconds
-      assert_nil subject.ten_thousandth_seconds
+      assert_that{ subject.seconds = "" }.does_not_raise
+      assert_that(subject.seconds).is_nil
+      assert_that(subject.ten_thousandth_seconds).is_nil
     end
 
     should "write values that can't be converted as `nil` values" do
       subject.seconds = 1.2345
-      assert_not_nil subject.ten_thousandth_seconds
-      assert_not_nil subject.seconds
+      assert_that(subject.ten_thousandth_seconds).is_not_nil
+      assert_that(subject.seconds).is_not_nil
 
-      assert_nothing_raised{ subject.seconds = true }
-      assert_nil subject.seconds
-      assert_nil subject.ten_thousandth_seconds
+      assert_that{ subject.seconds = true }.does_not_raise
+      assert_that(subject.seconds).is_nil
+      assert_that(subject.ten_thousandth_seconds).is_nil
     end
 
     should "handle decimals with less significant digits" do
       subject.seconds = 1.12
-      assert_equal 11200, subject.ten_thousandth_seconds
-      assert_equal 1.12,  subject.seconds
+      assert_that(subject.ten_thousandth_seconds).equals(11200)
+      assert_that(subject.seconds).equals(1.12)
     end
 
     should "handle integers" do
       subject.seconds = 5
-      assert_equal 50000, subject.ten_thousandth_seconds
-      assert_equal 5.0,   subject.seconds
+      assert_that(subject.ten_thousandth_seconds).equals(50000)
+      assert_that(subject.seconds).equals(5.0)
     end
 
     should "handle decimals that are less than 1" do
       subject.seconds = 0.0001
-      assert_equal 1,      subject.ten_thousandth_seconds
-      assert_equal 0.0001, subject.seconds
+      assert_that(subject.ten_thousandth_seconds).equals(1)
+      assert_that(subject.seconds).equals(0.0001)
     end
 
     should "handle decimals with too many significant digits by rounding" do
       subject.seconds = 1.00005
-      assert_equal 10001,  subject.ten_thousandth_seconds
-      assert_equal 1.0001, subject.seconds
+      assert_that(subject.ten_thousandth_seconds).equals(10001)
+      assert_that(subject.seconds).equals(1.0001)
     end
 
     should "handle repeating decimals" do
       subject.seconds = 1 / 3.0
-      assert_equal 3333,   subject.ten_thousandth_seconds
-      assert_equal 0.3333, subject.seconds
+      assert_that(subject.ten_thousandth_seconds).equals(3333)
+      assert_that(subject.seconds).equals(0.3333)
     end
-
   end
 
-  class TestHelpersTests < MixinSetupTests
+  class TestHelpersTests < ReceiverSetupTests
     include MuchDecimal::TestHelpers
 
     desc "TestHelpers"
+    subject{ receiver_class.new }
+
     setup do
-      @class.decimal_as_integer :seconds
-      @custom_precision = Factory.integer(10)
-      @class.decimal_as_integer :other_seconds, {
-        :source    => :integer_seconds,
-        :precision => @custom_precision
-      }
-
-      @instance = @class.new
-    end
-    subject{ @instance }
-
-    should "provide helpers for testing that a class has json fields" do
-      assert_decimal_as_integer subject, :seconds
-      assert_decimal_as_integer subject, :other_seconds, {
-        :source    => :integer_seconds,
-        :precision => @custom_precision
-      }
+      receiver_class.decimal_as_integer(:seconds)
+      receiver_class.decimal_as_integer(
+        :other_seconds,
+        source:    :integer_seconds,
+        precision: @custom_precision,
+      )
     end
 
+    let(:custom_precision){ Factory.integer(10) }
+
+    should "provide helpers for testing that a class has decimal fields" do
+      assert_decimal_as_integer(subject, :seconds)
+      assert_decimal_as_integer(
+        subject,
+        :other_seconds,
+        source:    :integer_seconds,
+        precision: @custom_precision,
+      )
+    end
   end
-
 end
