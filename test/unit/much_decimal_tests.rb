@@ -6,15 +6,15 @@ require "much-decimal"
 module MuchDecimal
   class UnitTests < Assert::Context
     desc "MuchDecimal"
-    subject { unit_module }
+    subject{ unit_module }
 
-    let(:unit_module) { MuchDecimal }
+    let(:unit_module){ MuchDecimal }
 
-    let(:integer) { Factory.integer }
-    let(:decimal) { Factory.float }
-    let(:precision) { Factory.integer(10) }
-    let(:base_10_modifier) { 10.0 ** precision }
-    let(:invalid_value) { [nil, '', true, false].sample }
+    let(:integer){ Factory.integer }
+    let(:decimal){ Factory.float }
+    let(:precision){ Factory.integer(10) }
+    let(:base_10_modifier){ 10.0**precision }
+    let(:invalid_value){ [nil, "", true, false].sample }
 
     should have_imeths :integer_to_decimal, :decimal_to_integer
 
@@ -43,28 +43,27 @@ module MuchDecimal
 
       assert_that(subject.decimal_to_integer(invalid_value, precision)).is_nil
     end
-
   end
 
   class ReceiverSetupTests < UnitTests
-    subject { receiver_class }
+    subject{ receiver_class }
 
-    let(:receiver_class) {
+    let(:receiver_class) do
       Class.new do
         include MuchDecimal
         attr_accessor :seconds_as_integer, :integer_seconds
       end
-    }
+    end
   end
 
   class ReceiverTests < ReceiverSetupTests
     desc "receiver"
 
-    let(:decimal) { Factory.float }
-    let(:integer) { Factory.integer }
+    let(:decimal){ Factory.float }
+    let(:integer){ Factory.integer }
 
-    let(:custom_source) { :integer_seconds }
-    let(:custom_precision) { Factory.integer(5) }
+    let(:custom_source){ :integer_seconds }
+    let(:custom_precision){ Factory.integer(5) }
 
     should have_imeths :decimal_as_integer
 
@@ -88,7 +87,7 @@ module MuchDecimal
       subject.decimal_as_integer(
         :seconds,
         source:    custom_source,
-        precision: custom_precision
+        precision: custom_precision,
       )
 
       receiver = subject.new
@@ -103,14 +102,13 @@ module MuchDecimal
       assert_that(receiver.seconds)
         .equals(unit_module.integer_to_decimal(integer, custom_precision))
     end
-
   end
 
   class EdgeCaseTests < UnitTests
     desc "edge cases"
-    subject { receiver_class.new }
+    subject{ receiver_class.new }
 
-    let(:receiver_class) {
+    let(:receiver_class) do
       Class.new do
         include MuchDecimal
 
@@ -120,7 +118,7 @@ module MuchDecimal
                            source:    :ten_thousandth_seconds,
                            precision: 4
       end
-    }
+    end
 
     should "allow writing and reading `nil` values" do
       assert_that(subject.ten_thousandth_seconds).is_nil
@@ -130,7 +128,7 @@ module MuchDecimal
       assert_that(subject.ten_thousandth_seconds).equals(12345)
       assert_that(subject.seconds).equals(1.2345)
 
-      assert_that { subject.seconds = nil }.does_not_raise
+      assert_that{ subject.seconds = nil }.does_not_raise
       assert_that(subject.seconds).is_nil
       assert_that(subject.ten_thousandth_seconds).is_nil
     end
@@ -140,7 +138,7 @@ module MuchDecimal
       assert_that(subject.ten_thousandth_seconds).is_not_nil
       assert_that(subject.seconds).is_not_nil
 
-      assert_that { subject.seconds = "" }.does_not_raise
+      assert_that{ subject.seconds = "" }.does_not_raise
       assert_that(subject.seconds).is_nil
       assert_that(subject.ten_thousandth_seconds).is_nil
     end
@@ -150,7 +148,7 @@ module MuchDecimal
       assert_that(subject.ten_thousandth_seconds).is_not_nil
       assert_that(subject.seconds).is_not_nil
 
-      assert_that { subject.seconds = true }.does_not_raise
+      assert_that{ subject.seconds = true }.does_not_raise
       assert_that(subject.seconds).is_nil
       assert_that(subject.ten_thousandth_seconds).is_nil
     end
@@ -190,18 +188,18 @@ module MuchDecimal
     include MuchDecimal::TestHelpers
 
     desc "TestHelpers"
-    subject { receiver_class.new }
+    subject{ receiver_class.new }
 
     setup do
       receiver_class.decimal_as_integer(:seconds)
       receiver_class.decimal_as_integer(
         :other_seconds,
         source:    :integer_seconds,
-        precision: @custom_precision
+        precision: @custom_precision,
       )
     end
 
-    let(:custom_precision) { Factory.integer(10) }
+    let(:custom_precision){ Factory.integer(10) }
 
     should "provide helpers for testing that a class has decimal fields" do
       assert_decimal_as_integer(subject, :seconds)
@@ -209,7 +207,7 @@ module MuchDecimal
         subject,
         :other_seconds,
         source:    :integer_seconds,
-        precision: @custom_precision
+        precision: @custom_precision,
       )
     end
   end
